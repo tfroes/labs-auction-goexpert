@@ -1,0 +1,53 @@
+
+### User - Busca por Id
+# Substituir o Id por um valor válido
+GET http://localhost:8080/user/00000000-0000-0000-0000-000000000000
+
+### User - Criar usuário
+POST http://localhost:8080/user
+Content-Type: application/json
+
+{
+  "name": "Usuario teste"
+}
+
+
+### Auction
+GET http://localhost:8080/auction
+
+
+###
+# Substituir o Id por um valor válido
+GET http://localhost:8080/auction/00000000-0000-0000-0000-000000000000
+
+
+###
+POST http://localhost:8080/auction
+Content-Type: application/json
+
+{
+  "product_name": "Produto 1",
+  "category": "Categoria 1",
+  "description": "Descrição 1",
+  "condition":  1
+}
+
+
+###
+# Substituir o Id por um valor válido
+GET http://localhost:8080/auction/winner/00000000-0000-0000-0000-000000000000
+
+
+### bid
+POST http://localhost:8080/bid
+Content-Type: application/json
+
+{
+	"user_id": "00000000-0000-0000-0000-000000000000",
+	"auction_id": "00000000-0000-0000-0000-000000000000",
+	"amount" : 11.5
+}
+
+###
+# Substituir o Id por um valor válido
+GET http://localhost:8080/bid/00000000-0000-0000-0000-000000000000
