@@ -45,6 +45,10 @@ type AuctionUseCaseInterface interface {
 		ctx context.Context,
 		auctionInput AuctionInputDTO) *internal_error.InternalError
 
+	CompleteAuction(
+		ctx context.Context,
+		durationCompleted time.Duration) *internal_error.InternalError
+
 	FindAuctionById(
 		ctx context.Context, id string) (*AuctionOutputDTO, *internal_error.InternalError)
 

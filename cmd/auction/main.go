@@ -13,6 +13,8 @@ import (
 	"fullcycle-auction_go/internal/usecase/bid_usecase"
 	"fullcycle-auction_go/internal/usecase/user_usecase"
 	"log"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -33,10 +35,17 @@ func main() {
 		return
 	}
 
+	userController, bidController, auctionsController, auctionUseCase := initDependencies(databaseConnection)
+	completeauctionDuration := getCompleteAuctionInterval()
+
+	go func() {
+		for {
+			auctionUseCase.CompleteAuction(ctx, getAuctionInterval())
+			time.Sleep(completeauctionDuration)
+		}
+	}()
+
 	router := gin.Default()
-
-	userController, bidController, auctionsController := initDependencies(databaseConnection)
-
 	//Auction
 	router.GET("/auction", auctionsController.FindAuctions)
 	router.GET("/auction/:auctionId", auctionsController.FindAuctionById)
@@ -53,9 +62,10 @@ func main() {
 }
 
 func initDependencies(database *mongo.Database) (
-	userController *user_controller.UserController,
-	bidController *bid_controller.BidController,
-	auctionController *auction_controller.AuctionController) {
+	*user_controller.UserController,
+	*bid_controller.BidController,
+	*auction_controller.AuctionController,
+	auction_usecase.AuctionUseCaseInterface) {
 
 	auctionStatusMap := auction.NewAuctionStatusMap()
 
@@ -63,11 +73,32 @@ func initDependencies(database *mongo.Database) (
 	bidRepository := bid.NewBidRepository(database, auctionRepository, auctionStatusMap)
 	userRepository := user.NewUserRepository(database)
 
-	userController = user_controller.NewUserController(
-		user_usecase.NewUserUseCase(userRepository))
-	auctionController = auction_controller.NewAuctionController(
-		auction_usecase.NewAuctionUseCase(auctionRepository, bidRepository))
-	bidController = bid_controller.NewBidController(bid_usecase.NewBidUseCase(bidRepository))
+	auctionUseCase := auction_usecase.NewAuctionUseCase(auctionRepository, bidRepository)
 
-	return
+	userController := user_controller.NewUserController(
+		user_usecase.NewUserUseCase(userRepository))
+	auctionController := auction_controller.NewAuctionController(auctionUseCase)
+	bidController := bid_controller.NewBidController(bid_usecase.NewBidUseCase(bidRepository))
+
+	return userController, bidController, auctionController, auctionUseCase
+}
+
+func getAuctionInterval() time.Duration {
+	auctionInterval := os.Getenv("AUCTION_INTERVAL")
+	duration, err := time.ParseDuration(auctionInterval)
+	if err != nil {
+		return time.Minute * 5
+	}
+
+	return duration
+}
+
+func getCompleteAuctionInterval() time.Duration {
+	auctionInterval := os.Getenv("COMPLETE_AUCTION_INTERVAL")
+	duration, err := time.ParseDuration(auctionInterval)
+	if err != nil {
+		return time.Minute * 5
+	}
+
+	return duration
 }

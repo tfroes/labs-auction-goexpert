@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
@@ -21,7 +22,15 @@ func Test_AutoClosed_In_CreateAuction(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 
 	mt.Run("Success", func(mt *mtest.T) {
+		//Create auction
 		mt.AddMockResponses(mtest.CreateSuccessResponse())
+
+		//Find auctions to complete
+		first := mtest.CreateCursorResponse(1, "auctions.auctions", mtest.FirstBatch, bson.D{{"_id", "1"}})
+		killCursors := mtest.CreateCursorResponse(0, "auctions.auctions", mtest.NextBatch)
+		mt.AddMockResponses(first, killCursors)
+
+		//update auction
 		mt.AddMockResponses(mtest.CreateSuccessResponse())
 
 		auctionStatusMap := NewAuctionStatusMap()
@@ -37,16 +46,16 @@ func Test_AutoClosed_In_CreateAuction(t *testing.T) {
 			Timestamp:   time.Now(),
 		}
 
-		err := auctionRepository.CreateAuction(context.Background(), auction)
+		ctx := context.Background()
+		err := auctionRepository.CreateAuction(ctx, auction)
+		assert.Nil(t, err)
 
 		time.Sleep(50 * time.Millisecond)
 
-		assert.Nil(t, err)
+		auctionRepository.CompleteAuction(ctx, 10*time.Millisecond)
 
 		status, okauction := auctionStatusMap.GetAuctionStatus(auction.Id)
 		assert.True(t, okauction)
 		assert.Equal(t, auction_entity.Completed, status)
-
 	})
-
 }
